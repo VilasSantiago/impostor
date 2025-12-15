@@ -10,6 +10,17 @@ import io from 'socket.io-client';
 const BACKEND_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const socket = io(BACKEND_URL);
 
+// Generador de ID persistente
+const getUserId = () => {
+  let id = localStorage.getItem("userId");
+  if (!id) {
+    // Generamos uno aleatorio y lo guardamos
+    id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    localStorage.setItem("userId", id);
+  }
+  return id;
+};
+
 function App() {
   //Estado para controlar dark mode
   const [darkMode, setDarkMode] = useState(true);
@@ -129,20 +140,20 @@ function Lobby() {
   const nombre = searchParams.get("nombre");
   
   const [jugadores, setJugadores] = useState([]);
-  // Inicializamos config con valores por defecto para evitar errores antes de cargar
-  const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas" });
+  const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas", adminId: null }); // Agregué adminId inicial
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Nuevo estado para el ID
-  const [myId, setMyId] = useState("scoket.id");
+  // 1. Obtenemos el ID (Asegúrate de que la función getUserId esté definida FUERA del componente)
+  const myUserId = getUserId();
 
   useEffect(() => {
     if (!nombre || !roomId) return;
 
-    socket.emit("join_room", { roomId, nombre });
-
-    socket.on("connect", () => {
-        setMyId(socket.id); // Si se reconecta, actualizamos el ID
+    // 2. CORRECCIÓN AQUÍ: La propiedad debe llamarse "userId" para que el servidor la lea
+    socket.emit("join_room", { 
+        roomId, 
+        nombre, 
+        userId: myUserId // <--- CAMBIO IMPORTANTE (Clave: Valor)
     });
 
     socket.on("update_players", (lista) => setJugadores(lista));
@@ -153,16 +164,20 @@ function Lobby() {
     });
 
     return () => {
-      socket.off("connect");
       socket.off("update_players");
       socket.off("update_config");
       socket.off("error_sala");
     };
   }, [roomId, nombre]);
 
+  // 3. ACTUALIZAR LÓGICA DE ADMIN
+  // Ya no miramos si eres el [0], miramos si tu ID coincide con el del dueño
+  const soyAdmin = config.adminId === myUserId; 
 
-  const miUsuario = jugadores.find(p => p.id === myId);
-  const soyAdmin = jugadores.length > 0 && jugadores[0].id === myId;
+  // ... resto del código (estoyListo, puedenIniciar, return, etc.)
+
+
+  const miUsuario = jugadores.find(p => p.id === myUserId);
   const estoyListo = miUsuario?.isReady || false;
   const puedenIniciar = jugadores.length >= 2 && jugadores.every(p => p.isReady);
 
@@ -227,7 +242,7 @@ function Lobby() {
                         : 'bg-slate-800/80 border-slate-600'}
                 `}
               >
-                {index === 0 && <span className="absolute text-xs text-yellow-400 top-1 right-2">👑</span>}
+                {config.adminId === jugador.userId && <span className="absolute text-xs text-yellow-400 top-1 right-2">👑</span>}
                 <div className={`absolute top-1 left-2 text-[10px] font-bold ${jugador.isReady ? 'text-green-400' : 'text-slate-500'}`}>
                     {jugador.isReady ? 'LISTO' : 'ESPERANDO'}
                 </div>
