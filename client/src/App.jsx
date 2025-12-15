@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { use, useState } from 'react';
 import './App.css'; // Puedes limpiar este archivo css si quieres luego
+
 import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import io from 'socket.io-client';
@@ -18,8 +19,13 @@ function App() {
   }
   return (
    <div class={darkMode ? "dark" : ""}>
-    <div class="h-screen md:h-screen w-full bg-indigo-200 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-200 font-mono transition-colors duration-300 flex flex-col items-center">
-      <button onClick={toggleDarkMode} class="size-12 rounded-md bg-slate-700 dark:bg-slate-300 hover:scale-110 tranistion-transform duration-300 absolute bottom-4 right-4">
+    <div class="bg-gradient-to-r from-purple-600 dark:from-black
+    dark:via-purple-950 via-pink-600 dark:to-purple-900 to-red-600 
+    bg-[length:200%_200%] animate-gradient h-screen w-full overflow-hidden font-game 
+    transition-colors duration-300 flex flex-col items-center">
+      <button onClick={toggleDarkMode} class="size-12 rounded-md bg-slate-700 
+      dark:bg-slate-300 hover:scale-110 tranistion-transform duration-300 absolute bottom-4 
+      right-4">
         {darkMode ? '🌞' : '🌙'}
       </button>
 
@@ -51,26 +57,42 @@ function Home() {
   };
 
   return (
-    <div class="p-48 flex flex-col items-center justify-center gap-4">
-      <h1 class="min-h-16  text-balance md:text-sm text-3xl font-bold font-mono">EL IMPOSTOR</h1>
+    <div class="flex flex-col items-center justify-center gap-4 h-screen w-full
+    overflow-hidden ">
+      <h1 class="min-h-16 text-balance md:text-sm text-6xl font-extrabold flex flex-col 
+      items-center dark:text-slate-50 text-slate-900 tranistion-transform duration-300">
+        <span class="text-6xl leading-none  ">
+          EL
+        </span>
+        <span class="text-6xl leading-none  ">
+          IMPOSTOR
+        </span>
+      </h1>
       <input 
-        class="rounded-xl p-2 text-black"
+        class="rounded-xl dark:border-slate-300 border-slate-900 dark:bg-slate-900 
+        bg-slate-300 border-4 p-2
+        text-center text-lg mt-8 dark:placeholder:text-slate-300 placeholder:text-slate-900
+        placeholder:font-italic h-14 w-72 tranistion-transform duration-300"
         placeholder="Tu Nombre" 
-        onChange={(e) => setNombre(e.target.value)} 
-      />
-      <div class="w-screen h-[1px] bg-gray-200 "></div>
-      <br />
-
-      <div class="flex flex-col md:flex-row p-6 gap-4">
-        <button onClick={crearSala} class="dark:bg-indigo-200 dark:text-indigo-900 bg-indigo-900 text-indigo-200 rounded-xl text-center text-lg
-        hover:scale-110 tranistion-transform duration-300">Crear Nueva Sala</button>
-      <br /><br />
-      <input 
+        onChange={(e) => setNombre(e.target.value)} />
+      <div class="flex flex-col p-6 mt-16">
+        <button onClick={crearSala} class="dark:border-slate-300 border-slate-900 border-4 
+        rounded-xl text-center text-2xl hover:scale-110 tranistion-transform duration-300
+      dark:text-slate-300 text-slate-900 h-14 md:mt-6
+        dark:bg-slate-900 bg-slate-300 w-full font-bold">CREAR NUEVA SALA</button>
+        
+      <div class="flex flex-col md:flex-row p-6 gap-4 ">
+        <input class="rounded-xl border-4 text-center dark:border-slate-300 border-slate-900
+         dark:bg-gray-900 bg-slate-300 h-14 dark:placeholder:text-slate-300 placeholder:text-slate-900
+         tranistion-transform duration-300"
         placeholder="ID de Sala" 
         onChange={(e) => setSalaId(e.target.value)} 
-      />
-      <button class="dark:bg-indigo-200 dark:text-indigo-900 bg-indigo-900 text-indigo-200 rounded-xl text-center text-lg
-        hover:scale-110 tranistion-transform duration-300" onClick={unirseSala}>Unirse</button>
+        />
+        <button class="rounded-xl text-center text-2xl hover:scale-110 tranistion-transform 
+        duration-300 border-4 dark:border-gray-300 border-slate-900 
+        dark:bg-gray-900 bg-slate-300 h-14 w-60 dark:text-slate-300 text-slate-900
+        font-bold" onClick={unirseSala}>UNIRSE</button>
+      </div>
       </div>
       
     </div>

@@ -6,7 +6,15 @@ export default {
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "game-primary-bg": "#000050",
+        "game-primary-fg": "#00FFBE",
+      },
+      fontFamily: {
+        'game': ['"Orbitron"', 'sans-serif'],
+      }
+    },
   },
   plugins: [],
 }
