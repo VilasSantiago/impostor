@@ -12,7 +12,7 @@ const socket = io(BACKEND_URL);
 
 function App() {
   //Estado para controlar dark mode
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   //Funcion para alternar darkmode
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
