@@ -10,7 +10,11 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        // Permitimos una lista (array) de orígenes:
+        origin: [
+            "http://localhost:5173",           // Para cuando trabajes en tu PC
+            "https://impostor-azure.vercel.app" // Tu URL real de Vercel
+        ],
         methods: ["GET", "POST"]
     }
 });
