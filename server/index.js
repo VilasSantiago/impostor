@@ -19,7 +19,7 @@ const io = new Server(server, {
     }
 });
 
-// Memoria temporal
+/*// Memoria temporal
 const salas = {}; 
 
 io.on('connection', (socket) => {
@@ -69,6 +69,85 @@ io.on('connection', (socket) => {
             if (salas[roomId].length === 0) {
                 delete salas[roomId];
                 console.log(`Sala ${roomId} eliminada por estar vacía`);
+            }
+        }
+    });
+});*/
+
+const salas = {};      // Jugadores: { roomId: [ {id, nombre, isReady, ...} ] }
+const configSalas = {}; // Configuración: { roomId: { maxPlayers: 10 } }
+
+io.on('connection', (socket) => {
+    console.log(`Usuario conectado: ${socket.id}`);
+
+    socket.on('join_room', ({ roomId, nombre }) => {
+        if (!salas[roomId]) {
+            salas[roomId] = [];
+            // AHORA GUARDAMOS TAMBIÉN LA CATEGORÍA
+            configSalas[roomId] = { 
+                maxPlayers: 10, 
+                category: "Futbolistas" // <--- Valor por defecto
+            }; 
+        }
+
+        // ... (verificación de limite igual que antes) ...
+
+        socket.join(roomId);
+        socket.roomId = roomId;
+
+        const yaExiste = salas[roomId].find(u => u.id === socket.id);
+        if (!yaExiste) {
+            salas[roomId].push({ id: socket.id, nombre, isReady: false });
+        }
+
+        io.to(roomId).emit('update_players', salas[roomId]);
+        io.to(roomId).emit('update_config', configSalas[roomId]);
+    });
+
+    // --- NUEVO: MARCAR COMO LISTO ---
+    socket.on('player_ready', () => {
+        const roomId = socket.roomId;
+        if (roomId && salas[roomId]) {
+            const player = salas[roomId].find(p => p.id === socket.id);
+            if (player) {
+                player.isReady = !player.isReady; // Alternar estado (true/false)
+                io.to(roomId).emit('update_players', salas[roomId]);
+            }
+        }
+    });
+
+    // --- NUEVO: CAMBIAR CONFIGURACIÓN (Solo Admin) ---
+    socket.on('change_max_players', (nuevoMax) => {
+        const roomId = socket.roomId;
+        if (roomId && configSalas[roomId]) {
+            // Validación simple: Mínimo 4, Máximo 15
+            if (nuevoMax >= 4 && nuevoMax <= 15) {
+                configSalas[roomId].maxPlayers = nuevoMax;
+                io.to(roomId).emit('update_config', configSalas[roomId]);
+            }
+        }
+    });
+
+    // --- NUEVO EVENTO: CAMBIAR CATEGORÍA ---
+    socket.on('change_category', (nuevaCategoria) => {
+        const roomId = socket.roomId;
+        if (roomId && configSalas[roomId]) {
+            configSalas[roomId].category = nuevaCategoria;
+            io.to(roomId).emit('update_config', configSalas[roomId]);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const roomId = socket.roomId;
+        if (roomId && salas[roomId]) {
+            const index = salas[roomId].findIndex(player => player.id === socket.id);
+            if (index !== -1) {
+                salas[roomId].splice(index, 1);
+                io.to(roomId).emit('update_players', salas[roomId]);
+            }
+            if (salas[roomId].length === 0) {
+                delete salas[roomId];
+                delete configSalas[roomId];
             }
         }
     });
