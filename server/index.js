@@ -16,7 +16,13 @@ const io = new Server(server, {
             "https://impostor-azure.vercel.app" // Tu URL real de Vercel
         ],
         methods: ["GET", "POST"]
-    }
+    },
+    connectionStateRecovery: {
+        // Ayuda a recuperar el estado si se cae el wifi brevemente
+        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutos
+    },
+    pingTimeout: 60000, // 1 minuto antes de dar por muerto al cliente
+    pingInterval: 25000, // Cada 25 segundos, enviar un ping al cliente
 });
 
 /*// Memoria temporal

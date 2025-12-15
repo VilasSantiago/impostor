@@ -47,12 +47,20 @@ function Home() {
   const navigate = useNavigate();
 
   const crearSala = () => {
+    if(nombre === "") {
+      alert("Por favor ingresa tu nombre.");
+      return;
+    }
     // Generamos un ID aleatorio simple (ej: "x7z9")
     const id = Math.random().toString(36).substring(7);
     navigate(`/sala/${id}?nombre=${nombre}`);
   };
 
   const unirseSala = () => {
+    if(nombre === "" || salaId === "") {
+      alert("Por favor ingresa tu nombre y el ID de la sala.");
+      return;
+    }
     navigate(`/sala/${salaId}?nombre=${nombre}`);
   };
 
@@ -125,10 +133,17 @@ function Lobby() {
   const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas" });
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Nuevo estado para el ID
+  const [myId, setMyId] = useState("scoket.id");
+
   useEffect(() => {
     if (!nombre || !roomId) return;
 
     socket.emit("join_room", { roomId, nombre });
+
+    socket.on("connect", () => {
+        setMyId(socket.id); // Si se reconecta, actualizamos el ID
+    });
 
     socket.on("update_players", (lista) => setJugadores(lista));
     socket.on("update_config", (cfg) => setConfig(cfg));
@@ -138,14 +153,16 @@ function Lobby() {
     });
 
     return () => {
+      socket.off("connect");
       socket.off("update_players");
       socket.off("update_config");
       socket.off("error_sala");
     };
   }, [roomId, nombre]);
 
-  const miUsuario = jugadores.find(p => p.id === socket.id);
-  const soyAdmin = jugadores.length > 0 && jugadores[0].id === socket.id;
+
+  const miUsuario = jugadores.find(p => p.id === myId);
+  const soyAdmin = jugadores.length > 0 && jugadores[0].id === myId;
   const estoyListo = miUsuario?.isReady || false;
   const puedenIniciar = jugadores.length >= 2 && jugadores.every(p => p.isReady);
 
@@ -194,8 +211,8 @@ function Lobby() {
         {/* LISTA DE JUGADORES (Izquierda) */}
         <div className="flex flex-col flex-1 p-6 border bg-slate-900/60 backdrop-blur-sm rounded-2xl border-slate-700">
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-700">
-            <h3 className="text-xl text-white font-game">TRIPULACIÓN</h3>
-            <span className={`px-3 py-1 rounded font-bold text-sm ${jugadores.length === config.maxPlayers ? 'bg-red-500 text-white' : 'bg-game-accent text-game-primary'}`}>
+            <h3 className="text-xl text-slate-300 font-game">TRIPULACIÓN</h3>
+            <span className={`px-3 py-1 rounded font-bold text-sm ${jugadores.length === config.maxPlayers ? 'bg-red-500 text-white' : 'bg-slate-900 text-slate-300'}`}>
               {jugadores.length} / {config.maxPlayers}
             </span>
           </div>
@@ -233,7 +250,7 @@ function Lobby() {
                
                {/* 1. SELECTOR DE CATEGORÍA (NUEVO) */}
                <div className="mb-4">
-                   <label className="block mb-2 text-sm font-bold tracking-wide uppercase text-game-accent">
+                   <label className="block mb-2 text-sm font-bold tracking-wide uppercase text-slate-300">
                        Temática de la Misión
                    </label>
                    <div className="relative">
@@ -243,7 +260,7 @@ function Lobby() {
                            disabled={!soyAdmin} // Solo Admin puede cambiar
                            className={`w-full p-4 rounded-xl border-2 appearance-none font-bold uppercase tracking-wider focus:outline-none transition-colors
                                ${soyAdmin 
-                                   ? 'bg-slate-800 border-game-accent text-white cursor-pointer hover:bg-slate-700' 
+                                   ? 'bg-slate-800 border-game-accent text-slate-300 cursor-pointer hover:bg-slate-700' 
                                    : 'bg-slate-800/50 border-slate-600 text-slate-400 cursor-not-allowed'}
                            `}
                        >
@@ -252,7 +269,7 @@ function Lobby() {
                            ))}
                        </select>
                        {/* Flechita decorativa */}
-                       <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-game-accent">
+                       <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-300">
                            <svg className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                        </div>
                    </div>
@@ -266,7 +283,7 @@ function Lobby() {
                        value={config.maxPlayers} 
                        onChange={cambiarMaxJugadores}
                        disabled={!soyAdmin}
-                       className={`w-full bg-slate-800 border p-3 rounded-lg focus:outline-none
+                       className={`w-full bg-slate-800 border p-3 rounded-lg focus:outline-none 
                            ${soyAdmin ? 'border-slate-500 text-white' : 'border-slate-700 text-slate-500 cursor-not-allowed'}
                        `}
                    >
