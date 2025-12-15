@@ -9,13 +9,27 @@ import io from 'socket.io-client';
 const socket = io('http://localhost:3001');
 
 function App() {
+  //Estado para controlar dark mode
+  const [darkMode, setDarkMode] = useState(false);
+  //Funcion para alternar darkmode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  }
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/sala/:roomId" element={<Lobby />} />
-      </Routes>
-    </BrowserRouter>
+   <div class={darkMode ? "dark" : ""}>
+    <div class="h-screen md:h-screen w-full bg-indigo-200 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-200 font-mono transition-colors duration-300 flex flex-col items-center">
+      <button onClick={toggleDarkMode} class="size-12 rounded-md bg-slate-700 dark:bg-slate-300 hover:scale-110 tranistion-transform duration-300 absolute bottom-4 right-4">
+        {darkMode ? '🌞' : '🌙'}
+      </button>
+
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/sala/:roomId" element={<Lobby />} />
+        </Routes>
+      </BrowserRouter>
+    </div>
+   </div>
   );
 }
 
@@ -36,21 +50,28 @@ function Home() {
   };
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h1>🕵️ El Impostor</h1>
+    <div class="p-48 flex flex-col items-center justify-center gap-4">
+      <h1 class="min-h-16  text-balance md:text-sm text-3xl font-bold font-mono">EL IMPOSTOR</h1>
       <input 
+        class="rounded-xl p-2 text-black"
         placeholder="Tu Nombre" 
         onChange={(e) => setNombre(e.target.value)} 
       />
+      <div class="w-screen h-[1px] bg-gray-200 "></div>
+      <br />
+
+      <div class="flex flex-col md:flex-row p-6 gap-4">
+        <button onClick={crearSala} class="dark:bg-indigo-200 dark:text-indigo-900 bg-indigo-900 text-indigo-200 rounded-xl text-center text-lg
+        hover:scale-110 tranistion-transform duration-300">Crear Nueva Sala</button>
       <br /><br />
-      <button onClick={crearSala}>Crear Nueva Sala</button>
-      <br /><br />
-      <p>--- O ---</p>
       <input 
         placeholder="ID de Sala" 
         onChange={(e) => setSalaId(e.target.value)} 
       />
-      <button onClick={unirseSala}>Unirse</button>
+      <button class="dark:bg-indigo-200 dark:text-indigo-900 bg-indigo-900 text-indigo-200 rounded-xl text-center text-lg
+        hover:scale-110 tranistion-transform duration-300" onClick={unirseSala}>Unirse</button>
+      </div>
+      
     </div>
   );
 }
@@ -78,7 +99,7 @@ function Lobby() {
   }, [roomId, nombre]);
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div class="bg-red-600">
       <h2>Sala ID: {roomId}</h2>
       <h3>Jugadores en linea:</h3>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
