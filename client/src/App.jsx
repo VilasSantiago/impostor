@@ -168,7 +168,7 @@ function Lobby() {
       socket.off("update_config");
       socket.off("error_sala");
     };
-  }, [roomId, nombre]);
+  }, [roomId, nombre, myUserId]);
 
   // 3. ACTUALIZAR LÓGICA DE ADMIN
   // Ya no miramos si eres el [0], miramos si tu ID coincide con el del dueño
