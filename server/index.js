@@ -25,8 +25,62 @@ const configSalas = {};
 
 io.on('connection', (socket) => {
     
-    // Recibimos userId en el evento join_room
     socket.on('join_room', ({ roomId, nombre, userId }) => {
+        
+        // 1. Crear sala si no existe (Igual que antes)
+        if (!salas[roomId]) {
+            salas[roomId] = [];
+            configSalas[roomId] = { 
+                maxPlayers: 10, 
+                category: "Futbolistas",
+                adminId: userId 
+            }; 
+        }
+
+        // --- LÓGICA DE SEGURIDAD (FIX) ---
+        
+        // A. ¿Este usuario ya estaba dentro? (Reconexión)
+        const yaEstabaDentro = salas[roomId].find(u => u.userId === userId);
+
+        // B. Si es NUEVO, chequeamos si hay lugar
+        if (!yaEstabaDentro) {
+            const limite = configSalas[roomId].maxPlayers;
+            
+            if (salas[roomId].length >= limite) {
+                // 1. Avisamos del error
+                socket.emit('error_sala', '⛔ ¡Misión abortada! La nave está llena.');
+                // 2. ¡IMPORTANTE! Cortamos la ejecución aquí.
+                return; 
+            }
+        }
+
+        // ----------------------------------
+
+        socket.join(roomId);
+        socket.roomId = roomId;
+        socket.userId = userId;
+
+        // Búsqueda de usuario existente (para actualizar socket.id)
+        if (yaEstabaDentro) {
+            // SI YA EXISTÍA: Solo actualizamos su id de conexión y nombre
+            yaEstabaDentro.id = socket.id;
+            yaEstabaDentro.nombre = nombre; // Actualizamos nombre por si lo cambió
+            // No tocamos isReady para que no pierda su estado
+        } else {
+            // SI ES NUEVO DE VERDAD: Lo agregamos
+            salas[roomId].push({ 
+                id: socket.id, 
+                userId, 
+                nombre, 
+                isReady: false 
+            });
+        }
+
+        io.to(roomId).emit('update_players', salas[roomId]);
+        io.to(roomId).emit('update_config', configSalas[roomId]);
+    });
+    // Recibimos userId en el evento join_room
+    /*socket.on('join_room', ({ roomId, nombre, userId }) => {
         
         // 1. Crear sala si no existe
         if (!salas[roomId]) {
@@ -68,7 +122,7 @@ io.on('connection', (socket) => {
 
         io.to(roomId).emit('update_players', salas[roomId]);
         io.to(roomId).emit('update_config', configSalas[roomId]);
-    });
+    });*/
 
     socket.on('player_ready', () => {
         const roomId = socket.roomId;
@@ -85,7 +139,7 @@ io.on('connection', (socket) => {
     socket.on('change_max_players', (nuevoMax) => {
         const roomId = socket.roomId;
         if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId) {
-            if (nuevoMax >= 4 && nuevoMax <= 15) {
+            if (nuevoMax >= 3 && nuevoMax <= 15) {
                 configSalas[roomId].maxPlayers = nuevoMax;
                 io.to(roomId).emit('update_config', configSalas[roomId]);
             }

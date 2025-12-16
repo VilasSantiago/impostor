@@ -137,6 +137,7 @@ function Lobby() {
     const handleErrorSala = (msg) => {
         setErrorMsg(msg);
         alert(msg);
+        navigate("/");
     };
     // activo los listeners
     socket.on("update_players", handleUpdatePlayers);
@@ -149,7 +150,7 @@ function Lobby() {
       socket.off("update_config", handleUpdateConfig);
       socket.off("error_sala", handleErrorSala);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!nombre || !roomId) return;
@@ -323,7 +324,7 @@ function Lobby() {
                                 ${soyAdmin ? 'bg-slate-800 border-yellow-600/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-600 cursor-not-allowed'}
                             `}
                         >
-                            {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
+                            {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
                                 <option key={num} value={num}>{num} Jugadores</option>
                             ))}
                         </select>
