@@ -81,7 +81,6 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('update_config', configSalas[roomId]);
     });
 
-    // ... (Eventos player_ready, change_max, change_cat SIGUEN IGUAL) ...
     socket.on('player_ready', () => {
         const roomId = socket.roomId;
         if (roomId && salas[roomId]) {
@@ -149,6 +148,7 @@ io.on('connection', (socket) => {
             if (user) {
                 // 1. MARCAR COMO OFFLINE (Gris en el frontend)
                 user.isOnline = false; 
+                user.isReady = false;
                 io.to(roomId).emit('update_players', salas[roomId]);
 
                 console.log(`Usuario ${userId} desconectado. Esperando 60s...`);
