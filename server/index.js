@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const { SocketAddress } = require('net');
 
 const app = express();
 app.use(cors());
@@ -96,6 +97,33 @@ io.on('connection', (socket) => {
         if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId) {
             configSalas[roomId].category = nuevaCategoria;
             io.to(roomId).emit('update_config', configSalas[roomId]);
+        }
+    });
+
+    socket.on('salir_sala', () => {
+        const roomId = socket.roomId;
+        const userId = socket.userId;
+
+        if (roomId && salas[roomId]) {
+            // Buscamos y borramos el usuario
+            const index = salas[roomId].findIndex(u => u.userId === userId);
+
+            if (index !== -1) {
+                salas[roomId].splice(index, 1); // Lo borramos de la lista
+
+                //aviso a los que quedan
+                io.to(roomId).emit('update_players', salas[roomId]);
+            }
+
+            // su no queda nadie, borramos la sala
+            if (salas[roomId].lenght === 0) {
+                delete salas[roomId];
+                delete configSalas[roomId];
+            }
+
+            // desconectamos al socket de la sala
+            socket.leave(roomId);
+            socket.roomId = null;
         }
     });
 

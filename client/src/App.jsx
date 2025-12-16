@@ -1,11 +1,8 @@
 // client/src/App.jsx
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { use, useState } from 'react';
-import './App.css'; // Puedes limpiar este archivo css si quieres luego
-
-import { useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import './App.css';
 
 const BACKEND_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const socket = io(BACKEND_URL);
@@ -14,146 +11,153 @@ const socket = io(BACKEND_URL);
 const getUserId = () => {
   let id = localStorage.getItem("userId");
   if (!id) {
-    // Generamos uno aleatorio y lo guardamos
     id = Math.random().toString(36).substring(2) + Date.now().toString(36);
     localStorage.setItem("userId", id);
   }
   return id;
 };
 
+// COMPONENTE PRINCIPAL DE RUTAS
 function App() {
-  //Estado para controlar dark mode
-  const [darkMode, setDarkMode] = useState(true);
-  //Funcion para alternar darkmode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  }
   return (
-   <div class={darkMode ? "dark" : ""}>
-    <div class="bg-gradient-to-r from-purple-600 dark:from-black
-    dark:via-purple-950 via-pink-600 dark:to-purple-900 to-red-600 
-    bg-[length:200%_200%] animate-gradient h-screen w-full overflow-hidden font-game 
-    transition-colors duration-300 flex flex-col items-center">
-      <button onClick={toggleDarkMode} class="size-12 rounded-md bg-slate-700 
-      dark:bg-slate-300 hover:scale-110 tranistion-transform duration-300 absolute bottom-4 
-      right-4">
-        {darkMode ? '🌞' : '🌙'}
-      </button>
-
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/sala/:roomId" element={<Lobby />} />
-        </Routes>
+        {/* Contenedor global con fondo oscuro para evitar espacios blancos al cargar */}
+        <div className="min-h-screen bg-slate-950 text-yellow-50">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/sala/:roomId" element={<Lobby />} />
+          </Routes>
+        </div>
       </BrowserRouter>
-    </div>
-   </div>
   );
 }
 
-// COMPONENTE 1: PANTALLA DE INICIO
+// --- PANTALLA DE INICIO (HOME) ---
 function Home() {
   const [nombre, setNombre] = useState("");
   const [salaId, setSalaId] = useState("");
   const navigate = useNavigate();
 
   const crearSala = () => {
-    if(nombre === "") {
-      alert("Por favor ingresa tu nombre.");
-      return;
-    }
-    // Generamos un ID aleatorio simple (ej: "x7z9")
-    const id = Math.random().toString(36).substring(7);
+    if(!nombre.trim()) return alert("Por favor ingresa tu nombre.");
+    const id = Math.random().toString(36).substring(7).toUpperCase();
     navigate(`/sala/${id}?nombre=${nombre}`);
   };
 
   const unirseSala = () => {
-    if(nombre === "" || salaId === "") {
-      alert("Por favor ingresa tu nombre y el ID de la sala.");
-      return;
-    }
+    if(!nombre.trim() || !salaId.trim()) return alert("Faltan datos.");
     navigate(`/sala/${salaId}?nombre=${nombre}`);
   };
 
   return (
-    <div class="flex flex-col items-center justify-center gap-4 h-screen w-full
-    overflow-hidden ">
-      <h1 class="min-h-16 text-balance md:text-sm text-6xl font-extrabold flex flex-col 
-      items-center dark:text-slate-50 text-slate-900 tranistion-transform duration-300">
-        <span class="text-6xl leading-none  ">
+    <div className="flex flex-col items-center justify-center w-full min-h-screen p-4 overflow-hidden bg-slate-950">
+      
+      {/* TÍTULO DORADO CON GRADIENTE */}
+      <h1 className="flex flex-col items-center font-extrabold tracking-tighter drop-shadow-2xl">
+        <span className="text-4xl text-transparent md:text-6xl bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600">
           EL
         </span>
-        <span class="text-6xl leading-none  ">
+        <span className="text-6xl md:text-9xl leading-none text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-700 drop-shadow-[0_2px_10px_rgba(234,179,8,0.5)]">
           IMPOSTOR
         </span>
       </h1>
-      <input 
-        class="rounded-xl dark:border-slate-300 border-slate-900 dark:bg-slate-900 
-        bg-slate-300 border-4 p-2
-        text-center text-lg mt-8 dark:placeholder:text-slate-300 placeholder:text-slate-900
-        placeholder:font-italic h-14 w-72 tranistion-transform duration-300 dark:text-slate-300"
-        placeholder="Tu Nombre" 
-        onChange={(e) => setNombre(e.target.value)} />
-      <div class="flex flex-col p-6 mt-16">
-        <button onClick={crearSala} class="dark:border-slate-300 border-slate-900 border-4 
-        rounded-xl text-center text-2xl hover:scale-110 tranistion-transform duration-300
-      dark:text-slate-300 text-slate-900 h-14 md:mt-6
-        dark:bg-slate-900 bg-slate-300 w-full font-bold">CREAR NUEVA SALA</button>
-        
-      <div class="flex flex-col md:flex-row p-6 gap-4 ">
-        <input class="rounded-xl border-4 text-center dark:border-slate-300 border-slate-900
-         dark:bg-gray-900 bg-slate-300 h-14 dark:placeholder:text-slate-300 placeholder:text-slate-900
-         tranistion-transform duration-300 dark:text-slate-300"
-        placeholder="ID de Sala" 
-        onChange={(e) => setSalaId(e.target.value)} 
+
+      {/* INPUT NOMBRE */}
+      <div className="w-full max-w-sm mt-12">
+        <label className="block mb-2 text-sm font-bold tracking-widest text-center text-yellow-600">IDENTIFICACIÓN</label>
+        <input 
+          className="w-full h-14 bg-slate-900 border-2 border-slate-700 rounded-xl text-center text-xl text-yellow-100 placeholder:text-slate-600 focus:outline-none focus:border-yellow-500 focus:shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all duration-300 uppercase font-bold"
+          placeholder="TU NOMBRE" 
+          maxLength={12}
+          onChange={(e) => setNombre(e.target.value)} 
         />
-        <button class="rounded-xl text-center text-2xl hover:scale-110 tranistion-transform 
-        duration-300 border-4 dark:border-gray-300 border-slate-900 
-        dark:bg-gray-900 bg-slate-300 h-14 w-60 dark:text-slate-300 text-slate-900
-        font-bold" onClick={unirseSala}>UNIRSE</button>
       </div>
+
+      {/* BOTONES Y ACCIONES */}
+      <div className="flex flex-col w-full max-w-sm gap-6 mt-8">
+        
+        {/* BOTÓN CREAR */}
+        <button 
+          onClick={crearSala} 
+          className="w-full h-16 text-2xl font-black tracking-widest uppercase transition-all border-b-4 border-yellow-900 shadow-lg rounded-xl bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 text-slate-900 active:border-b-0 active:translate-y-1 hover:shadow-yellow-500/20"
+        >
+          Crear Sala
+        </button>
+        
+        {/* SEPARADOR */}
+        <div className="flex items-center gap-2 opacity-50">
+            <div className="flex-1 h-px bg-yellow-800"></div>
+            <span className="text-xs text-yellow-700">O ÚNETE A UNA</span>
+            <div className="flex-1 h-px bg-yellow-800"></div>
+        </div>
+
+        {/* ZONA UNIRSE */}
+        <div className="flex gap-2">
+          <input 
+            className="flex-1 text-lg text-center text-yellow-100 uppercase transition-all border-2 h-14 bg-slate-900 border-slate-700 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-yellow-500"
+            placeholder="CÓDIGO SALA" 
+            onChange={(e) => setSalaId(e.target.value.toUpperCase())} 
+          />
+          <button 
+            onClick={unirseSala}
+            className="w-32 font-bold text-yellow-500 transition-all border-2 border-yellow-700 h-14 rounded-xl hover:bg-yellow-900/30 hover:text-yellow-300 hover:border-yellow-400 active:scale-95"
+          >
+            ENTRAR
+          </button>
+        </div>
       </div>
       
     </div>
   );
 }
 
-// COMPONENTE 2: EL LOBBY (Haremos la lógica en el Paso 3)
-// --- PANTALLA DE LOBBY ---
-// Definimos las categorías fuera del componente para que sea fácil editar
+// --- CONFIGURACIÓN Y LOBBY ---
+
 const CATEGORIAS = [
-  "Futbolistas",
-  "Equipos de Fútbol",
-  "Cantantes",
-  "Famosos",
-  "Películas",
-  "Animales",
-  "Países",
-  "Marcas de Autos",
-  "Comida",
-  "Objetos de la Casa"
+  "Futbolistas", "Equipos de Fútbol", "Cantantes", "Famosos", 
+  "Películas", "Animales", "Países", "Marcas de Autos", "Comida", "Objetos de la Casa"
 ];
 
 function Lobby() {
+  const navigate = useNavigate();
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
   const nombre = searchParams.get("nombre");
   
   const [jugadores, setJugadores] = useState([]);
-  const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas", adminId: null }); // Agregué adminId inicial
+  const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas", adminId: null });
   const [errorMsg, setErrorMsg] = useState("");
 
-  // 1. Obtenemos el ID (Asegúrate de que la función getUserId esté definida FUERA del componente)
   const myUserId = getUserId();
+
+  useEffect(() => {
+    // defino que hacen cuando llegan mensajes
+    const handleUpdatePlayers = (lista) => setJugadores(lista);
+    const handleUpdateConfig = (cfg) => setConfig(cfg);
+    const handleErrorSala = (msg) => {
+        setErrorMsg(msg);
+        alert(msg);
+    };
+    // activo los listeners
+    socket.on("update_players", handleUpdatePlayers);
+    socket.on("update_config", handleUpdateConfig);
+    socket.on("error_sala", handleErrorSala);
+
+    // limpio al salir
+    return () => {
+      socket.off("update_players", handleUpdatePlayers);
+      socket.off("update_config", handleUpdateConfig);
+      socket.off("error_sala", handleErrorSala);
+    }
+  }, []);
 
   useEffect(() => {
     if (!nombre || !roomId) return;
 
-    // 2. CORRECCIÓN AQUÍ: La propiedad debe llamarse "userId" para que el servidor la lea
     socket.emit("join_room", { 
         roomId, 
         nombre, 
-        userId: myUserId // <--- CAMBIO IMPORTANTE (Clave: Valor)
+        userId: myUserId 
     });
 
     socket.on("update_players", (lista) => setJugadores(lista));
@@ -170,14 +174,8 @@ function Lobby() {
     };
   }, [roomId, nombre, myUserId]);
 
-  // 3. ACTUALIZAR LÓGICA DE ADMIN
-  // Ya no miramos si eres el [0], miramos si tu ID coincide con el del dueño
   const soyAdmin = config.adminId === myUserId; 
-
-  // ... resto del código (estoyListo, puedenIniciar, return, etc.)
-
-
-  const miUsuario = jugadores.find(p => p.id === myUserId);
+  const miUsuario = jugadores.find(p => p.id === socket.id); // OJO: Aquí podrías querer buscar por userId si usaste persistencia total, pero por socket.id funciona para el estado visual inmediato
   const estoyListo = miUsuario?.isReady || false;
   const puedenIniciar = jugadores.length >= 2 && jugadores.every(p => p.isReady);
 
@@ -186,7 +184,6 @@ function Lobby() {
       socket.emit("change_max_players", nuevoMax);
   };
 
-  // NUEVA FUNCIÓN PARA CAMBIAR CATEGORÍA
   const cambiarCategoria = (e) => {
       socket.emit("change_category", e.target.value);
   };
@@ -196,7 +193,6 @@ function Lobby() {
   const iniciarJuego = () => {
       if(soyAdmin && puedenIniciar) {
           alert(`¡JUEGO INICIADO!\nCategoría: ${config.category}\nJugadores: ${config.maxPlayers}`);
-          // socket.emit('start_game')
       }
   };
 
@@ -205,139 +201,165 @@ function Lobby() {
     alert("Código copiado");
   };
 
-  if (errorMsg) return <div className="flex items-center justify-center h-screen text-2xl text-red-500 font-game">{errorMsg}</div>;
+  const salirDeSala = () => {
+    const confirmar = window.confirm("¿Estás seguro que quieres salir de la sala?");
+    if (confirmar) {
+      socket.emit("salir_sala");
+      navigate("/");
+    }
+  };
+
+  if (errorMsg) return <div className="flex items-center justify-center h-screen text-2xl font-bold text-red-500 bg-slate-950">{errorMsg}</div>;
 
   return (
-    <div className="flex flex-col items-center justify-between w-full h-full max-w-6xl p-4 mx-auto md:p-6">
+    <div className="relative flex flex-col items-center justify-between w-full h-screen overflow-hidden bg-slate-950 text-yellow-50">
       
-      {/* CABECERA */}
-      <div className="flex flex-col items-center w-full gap-4 mt-4 animate-fade-in-down">
-        <div onClick={copiarCodigo} className="relative flex flex-col items-center px-12 py-4 transition-all border-2 cursor-pointer group bg-black/40 backdrop-blur-md border-game-accent rounded-xl hover:bg-game-accent/10">
-          <span className="mb-1 text-xs font-bold tracking-widest uppercase text-slate-400">Código de Misión</span>
-          <p className="text-3xl md:text-5xl font-game text-white tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-            {roomId}
-          </p>
+      {/* BOTÓN SALIR */}
+      <button 
+        onClick={salirDeSala}
+        className="absolute z-50 flex items-center gap-2 p-2 transition-all top-20 left-2 md:top-16 md:left-24 text-slate-500 hover:text-red-500 group"
+      >
+        <div className="p-2 transition-colors border rounded-full bg-slate-900 border-slate-700 group-hover:bg-red-900/20 group-hover:border-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
         </div>
-      </div>
+        <span className="hidden text-sm font-bold tracking-wider md:block group-hover:text-red-500">ABANDONAR</span>
+      </button>
 
-      {/* ZONA CENTRAL */}
-      <div className="flex flex-col flex-1 w-full gap-6 mt-8 overflow-hidden lg:flex-row">
-        
-        {/* LISTA DE JUGADORES (Izquierda) */}
-        <div className="flex flex-col flex-1 p-6 border bg-slate-900/60 backdrop-blur-sm rounded-2xl border-slate-700">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-700">
-            <h3 className="text-xl text-slate-300 font-game">TRIPULACIÓN</h3>
-            <span className={`px-3 py-1 rounded font-bold text-sm ${jugadores.length === config.maxPlayers ? 'bg-red-500 text-white' : 'bg-slate-900 text-slate-300'}`}>
-              {jugadores.length} / {config.maxPlayers}
-            </span>
-          </div>
+      {/* CONTENEDOR PRINCIPAL CON PADDING */}
+      <div className="flex flex-col items-center w-full h-full max-w-6xl p-4 md:p-6">
 
-          <div className="grid grid-cols-2 gap-4 pr-2 overflow-y-auto sm:grid-cols-3 custom-scrollbar">
-            {jugadores.map((jugador, index) => (
-              <div 
-                key={index} 
-                className={`relative flex flex-col items-center p-3 rounded-lg border transition-all duration-300
-                    ${jugador.isReady 
-                        ? 'bg-green-900/40 border-green-400 shadow-[0_0_15px_rgba(74,222,128,0.3)]' 
-                        : 'bg-slate-800/80 border-slate-600'}
-                `}
-              >
-                {config.adminId === jugador.userId && <span className="absolute text-xs text-yellow-400 top-1 right-2">👑</span>}
-                <div className={`absolute top-1 left-2 text-[10px] font-bold ${jugador.isReady ? 'text-green-400' : 'text-slate-500'}`}>
-                    {jugador.isReady ? 'LISTO' : 'ESPERANDO'}
-                </div>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white shadow-lg mb-2 border-2 
-                    ${jugador.isReady ? 'border-green-400 bg-green-600' : 'border-slate-400 bg-slate-600'}`}>
-                  {jugador.nombre.charAt(0).toUpperCase()}
-                </div>
-                <span className="w-full text-sm font-bold text-center truncate text-slate-200">
-                  {jugador.nombre} {jugador.id === socket.id ? '(Tú)' : ''}
-                </span>
-              </div>
-            ))}
-          </div>
+        {/* CABECERA (Código) */}
+        <div className="flex flex-col items-center w-full gap-4 mt-12 md:mt-4 shrink-0">
+            <div onClick={copiarCodigo} className="relative flex flex-col items-center px-12 py-4 transition-all border border-yellow-600/50 cursor-pointer group bg-slate-900/50 backdrop-blur-md rounded-xl hover:bg-yellow-900/20 hover:border-yellow-500 hover:shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+            <span className="mb-1 text-xs font-bold tracking-widest text-yellow-600 uppercase group-hover:text-yellow-400">Código de Misión</span>
+            <p className="text-4xl font-black tracking-widest text-white md:text-5xl drop-shadow-md">
+                {roomId}
+            </p>
+            <span className="absolute -bottom-6 text-[10px] text-yellow-700 opacity-0 group-hover:opacity-100 transition-opacity">CLICK PARA COPIAR</span>
+            </div>
         </div>
 
-        {/* CONFIGURACIÓN (Derecha) */}
-        <div className="flex flex-col justify-between flex-1 p-6 border bg-slate-900/60 backdrop-blur-sm rounded-2xl border-slate-700">
-           <div>
-               <h3 className="pb-4 mb-6 text-xl text-white border-b font-game border-slate-700">CONFIGURACIÓN</h3>
-               
-               {/* 1. SELECTOR DE CATEGORÍA (NUEVO) */}
-               <div className="mb-4">
-                   <label className="block mb-2 text-sm font-bold tracking-wide uppercase text-slate-300">
-                       Temática de la Misión
-                   </label>
-                   <div className="relative">
-                       <select 
-                           value={config.category} 
-                           onChange={cambiarCategoria}
-                           disabled={!soyAdmin} // Solo Admin puede cambiar
-                           className={`w-full p-4 rounded-xl border-2 appearance-none font-bold uppercase tracking-wider focus:outline-none transition-colors
-                               ${soyAdmin 
-                                   ? 'bg-slate-800 border-game-accent text-slate-300 cursor-pointer hover:bg-slate-700' 
-                                   : 'bg-slate-800/50 border-slate-600 text-slate-400 cursor-not-allowed'}
-                           `}
-                       >
-                           {CATEGORIAS.map(cat => (
-                               <option key={cat} value={cat}>{cat}</option>
-                           ))}
-                       </select>
-                       {/* Flechita decorativa */}
-                       <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-300">
-                           <svg className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                       </div>
-                   </div>
-                   {!soyAdmin && <p className="mt-1 text-xs text-right text-slate-500">Solo el líder puede cambiar esto</p>}
-               </div>
+        {/* ZONA CENTRAL */}
+        <div className="flex flex-col flex-1 w-full gap-6 pb-4 mt-8 overflow-y-auto lg:overflow-hidden lg:flex-row custom-scrollbar">
+            
+            {/* LISTA DE JUGADORES */}
+            <div className="flex flex-col flex-1 p-6 border bg-slate-900/80 backdrop-blur-sm rounded-2xl border-slate-800 min-h-[300px] shadow-2xl">
+                <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-700">
+                    <h3 className="text-xl font-bold tracking-wider text-yellow-500">TRIPULACIÓN</h3>
+                    <span className={`px-3 py-1 rounded font-bold text-sm ${jugadores.length === config.maxPlayers ? 'bg-red-900 text-red-200' : 'bg-slate-800 text-slate-400'}`}>
+                    {jugadores.length} / {config.maxPlayers}
+                    </span>
+                </div>
 
-               {/* 2. SELECTOR DE JUGADORES */}
-               <div className="mb-6">
-                   <label className="block mb-2 text-sm font-bold uppercase text-slate-400">Límite de Jugadores</label>
-                   <select 
-                       value={config.maxPlayers} 
-                       onChange={cambiarMaxJugadores}
-                       disabled={!soyAdmin}
-                       className={`w-full bg-slate-800 border p-3 rounded-lg focus:outline-none 
-                           ${soyAdmin ? 'border-slate-500 text-white' : 'border-slate-700 text-slate-500 cursor-not-allowed'}
-                       `}
-                   >
-                       {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
-                           <option key={num} value={num}>{num} Jugadores</option>
-                       ))}
-                   </select>
-               </div>
-           </div>
+                <div className="grid content-start h-full grid-cols-2 gap-4 pr-2 overflow-y-auto sm:grid-cols-3 custom-scrollbar">
+                    {jugadores.map((jugador, index) => (
+                    <div 
+                        key={index} 
+                        className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-300 h-fit
+                            ${jugador.isReady 
+                                ? 'bg-green-900/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' 
+                                : 'bg-slate-800 border-slate-700'}
+                        `}
+                    >
+                        {config.adminId === jugador.userId && <span className="absolute text-sm top-1 right-2">👑</span>}
+                        
+                        <div className={`absolute top-1 left-2 text-[9px] font-black tracking-widest ${jugador.isReady ? 'text-green-400' : 'text-slate-500'}`}>
+                            {jugador.isReady ? 'LISTO' : 'ESPERANDO'}
+                        </div>
 
-           {/* CONTROLES */}
-           <div className="flex flex-col gap-3">
-               <button 
-                  onClick={toggleListo}
-                  className={`w-full font-bold py-4 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest
-                    ${estoyListo 
-                        ? 'bg-yellow-600 hover:bg-yellow-500 border-yellow-800 text-white' 
-                        : 'bg-slate-600 hover:bg-slate-500 border-slate-800 text-slate-200'
-                    }`}
-               >
-                   {estoyListo ? "⚠️ CANCELAR (NO ESTOY LISTO)" : "✅ MARCAR COMO LISTO"}
-               </button>
+                        <div className={`w-14 h-14 shrink-0 aspect-square rounded-full flex items-center justify-center text-2xl font-black text-slate-900 shadow-lg mb-2 border-4 mt-2
+                            ${jugador.isReady 
+                                ? 'border-green-500 bg-green-400' 
+                                : 'border-slate-600 bg-slate-400'
+                            }`}>
+                        {jugador.nombre.charAt(0).toUpperCase()}
+                        </div>
+                        <span className={`w-full text-sm font-bold text-center truncate ${jugador.isReady ? 'text-green-100' : 'text-slate-400'}`}>
+                        {jugador.nombre} {jugador.id === socket.id ? '(Tú)' : ''}
+                        </span>
+                    </div>
+                    ))}
+                </div>
+            </div>
 
-               {soyAdmin && (
-                   <button 
-                     onClick={iniciarJuego}
-                     disabled={!puedenIniciar}
-                     className="w-full py-4 text-xl text-white uppercase transition-all bg-red-600 border-b-8 border-red-900 shadow-lg hover:bg-red-500 font-game rounded-xl active:border-b-0 active:translate-y-2 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-                   >
-                     {puedenIniciar ? "🚀 INICIAR PARTIDA" : "ESPERANDO A TODOS..."}
-                   </button>
-               )}
-               
-               {!soyAdmin && (
-                   <div className="text-sm text-center text-slate-500 animate-pulse">
-                       {puedenIniciar ? "El líder está a punto de iniciar..." : "Esperando que el líder inicie..."}
-                   </div>
-               )}
-           </div>
+            {/* CONFIGURACIÓN */}
+            <div className="flex flex-col justify-between flex-1 p-6 border shadow-2xl bg-slate-900/80 backdrop-blur-sm rounded-2xl border-slate-800 shrink-0">
+                <div>
+                    <h3 className="pb-4 mb-6 text-xl font-bold tracking-wider text-yellow-500 border-b border-slate-700">CONFIGURACIÓN</h3>
+                    
+                    {/* CATEGORÍA */}
+                    <div className="mb-6">
+                        <label className="block mb-2 text-xs font-bold tracking-widest uppercase text-slate-500">
+                            Temática
+                        </label>
+                        <div className="relative">
+                            <select 
+                                value={config.category} 
+                                onChange={cambiarCategoria}
+                                disabled={!soyAdmin} 
+                                className={`w-full p-4 rounded-xl border-2 appearance-none font-bold uppercase tracking-wider focus:outline-none transition-colors text-sm
+                                    ${soyAdmin 
+                                        ? 'bg-slate-800 border-yellow-600/50 text-yellow-100 cursor-pointer hover:bg-slate-700 hover:border-yellow-500' 
+                                        : 'bg-slate-950 border-slate-800 text-slate-600 cursor-not-allowed'}
+                                `}
+                            >
+                                {CATEGORIAS.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* JUGADORES */}
+                    <div className="mb-6">
+                        <label className="block mb-2 text-xs font-bold tracking-widest uppercase text-slate-500">Límite</label>
+                        <select 
+                            value={config.maxPlayers} 
+                            onChange={cambiarMaxJugadores}
+                            disabled={!soyAdmin}
+                            className={`w-full p-3 rounded-xl border-2 focus:outline-none font-bold
+                                ${soyAdmin ? 'bg-slate-800 border-yellow-600/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-600 cursor-not-allowed'}
+                            `}
+                        >
+                            {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
+                                <option key={num} value={num}>{num} Jugadores</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* CONTROLES */}
+                <div className="flex flex-col gap-3">
+                    <button 
+                        onClick={toggleListo}
+                        className={`w-full font-black py-4 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest text-lg
+                        ${estoyListo 
+                            ? 'bg-yellow-600 hover:bg-yellow-500 border-yellow-800 text-slate-900' 
+                            : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-slate-300'
+                        }`}
+                    >
+                        {estoyListo ? "CANCELAR" : "ESTOY LISTO"}
+                    </button>
+
+                    {soyAdmin && (
+                        <button 
+                            onClick={iniciarJuego}
+                            disabled={!puedenIniciar}
+                            className="w-full py-4 text-xl font-black tracking-widest text-white uppercase transition-all border-b-8 border-red-900 shadow-lg bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 rounded-xl active:border-b-0 active:translate-y-2 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                        >
+                            {puedenIniciar ? "INICIAR PARTIDA" : "ESPERANDO..."}
+                        </button>
+                    )}
+                    
+                    {!soyAdmin && (
+                        <div className="mt-2 text-xs tracking-widest text-center uppercase text-slate-500 animate-pulse">
+                            {puedenIniciar ? "El líder está iniciando..." : "Esperando al líder..."}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
       </div>
     </div>
