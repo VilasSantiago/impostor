@@ -262,14 +262,21 @@ function Lobby() {
                             ${jugador.isReady 
                                 ? 'bg-green-900/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' 
                                 : 'bg-slate-800 border-slate-700'}
+                            
+                            ${/* <--- FANTASMA: EFECTO VISUAL */
+                              !jugador.isOnline ? 'opacity-40 grayscale border-dashed border-slate-600' : 'opacity-100'}
                         `}
                     >
+                        {/* Corona */}
                         {config.adminId === jugador.userId && <span className="absolute text-sm top-1 right-2">👑</span>}
                         
-                        <div className={`absolute top-1 left-2 text-[9px] font-black tracking-widest ${jugador.isReady ? 'text-green-400' : 'text-slate-500'}`}>
-                            {jugador.isReady ? 'LISTO' : 'ESPERANDO'}
+                        {/* Estado Texto */}
+                        <div className={`absolute top-2 left-2 text-[9px] font-black tracking-widest ${jugador.isReady ? 'text-green-400' : 'text-slate-500'}`}>
+                            {/* Si no está online mostramos "OFFLINE" */}
+                            {!jugador.isOnline ? 'OFFLINE' : (jugador.isReady ? 'LISTO' : 'ESPERANDO')}
                         </div>
 
+                        {/* Avatar */}
                         <div className={`w-14 h-14 shrink-0 aspect-square rounded-full flex items-center justify-center text-2xl font-black text-slate-900 shadow-lg mb-2 border-4 mt-2
                             ${jugador.isReady 
                                 ? 'border-green-500 bg-green-400' 
@@ -324,7 +331,7 @@ function Lobby() {
                                 ${soyAdmin ? 'bg-slate-800 border-yellow-600/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-600 cursor-not-allowed'}
                             `}
                         >
-                            {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(num => (
                                 <option key={num} value={num}>{num} Jugadores</option>
                             ))}
                         </select>

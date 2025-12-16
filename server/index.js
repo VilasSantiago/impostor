@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { SocketAddress } = require('net');
 
 const app = express();
 app.use(cors());
@@ -14,7 +13,6 @@ const io = new Server(server, {
         origin: ["http://localhost:5173", "https://impostor-azure.vercel.app"],
         methods: ["GET", "POST"]
     },
-    // Mantén esto para ayudar a la estabilidad
     connectionStateRecovery: {
         maxDisconnectionDuration: 2 * 60 * 1000, 
     },
@@ -22,108 +20,68 @@ const io = new Server(server, {
 
 const salas = {};      
 const configSalas = {}; 
+const roomTimers = {};   // Temporizadores para borrar SALAS vacías
+const playerTimers = {}; // <--- NUEVO: Temporizadores para borrar JUGADORES desconectados
 
 io.on('connection', (socket) => {
     
     socket.on('join_room', ({ roomId, nombre, userId }) => {
         
-        // 1. Crear sala si no existe (Igual que antes)
-        if (!salas[roomId]) {
-            salas[roomId] = [];
-            configSalas[roomId] = { 
-                maxPlayers: 10, 
-                category: "Futbolistas",
-                adminId: userId 
-            }; 
+        // 1. SI LA SALA ESTABA POR BORRARSE, LA SALVAMOS
+        if (roomTimers[roomId]) {
+            clearTimeout(roomTimers[roomId]);
+            delete roomTimers[roomId];
         }
 
-        // --- LÓGICA DE SEGURIDAD (FIX) ---
-        
-        // A. ¿Este usuario ya estaba dentro? (Reconexión)
-        const yaEstabaDentro = salas[roomId].find(u => u.userId === userId);
+        // 2. SI EL JUGADOR ERA UN FANTASMA, LO REVIVIMOS
+        if (playerTimers[userId]) { // <--- FANTASMA
+            clearTimeout(playerTimers[userId]);
+            delete playerTimers[userId];
+            console.log(`Jugador ${userId} reconectado a tiempo.`);
+        }
 
-        // B. Si es NUEVO, chequeamos si hay lugar
-        if (!yaEstabaDentro) {
+        if (!salas[roomId]) {
+            salas[roomId] = [];
+            configSalas[roomId] = { maxPlayers: 10, category: "Futbolistas", adminId: userId }; 
+        }
+
+        // Lógica de recuperación o ingreso
+        const usuarioExistente = salas[roomId].find(u => u.userId === userId);
+
+        if (!usuarioExistente) {
+            // Si es NUEVO, revisamos cupo
             const limite = configSalas[roomId].maxPlayers;
-            
             if (salas[roomId].length >= limite) {
-                // 1. Avisamos del error
                 socket.emit('error_sala', '⛔ ¡Misión abortada! La nave está llena.');
-                // 2. ¡IMPORTANTE! Cortamos la ejecución aquí.
                 return; 
             }
         }
-
-        // ----------------------------------
 
         socket.join(roomId);
         socket.roomId = roomId;
         socket.userId = userId;
 
-        // Búsqueda de usuario existente (para actualizar socket.id)
-        if (yaEstabaDentro) {
-            // SI YA EXISTÍA: Solo actualizamos su id de conexión y nombre
-            yaEstabaDentro.id = socket.id;
-            yaEstabaDentro.nombre = nombre; // Actualizamos nombre por si lo cambió
-            // No tocamos isReady para que no pierda su estado
+        if (usuarioExistente) {
+            // <--- FANTASMA: VOLVIÓ
+            usuarioExistente.id = socket.id; // Actualizamos socket
+            usuarioExistente.nombre = nombre;
+            usuarioExistente.isOnline = true; // <--- Lo marcamos ONLINE de nuevo
         } else {
-            // SI ES NUEVO DE VERDAD: Lo agregamos
+            // NUEVO JUGADOR
             salas[roomId].push({ 
                 id: socket.id, 
                 userId, 
                 nombre, 
-                isReady: false 
+                isReady: false,
+                isOnline: true // <--- Nuevo estado por defecto
             });
         }
 
         io.to(roomId).emit('update_players', salas[roomId]);
         io.to(roomId).emit('update_config', configSalas[roomId]);
     });
-    // Recibimos userId en el evento join_room
-    /*socket.on('join_room', ({ roomId, nombre, userId }) => {
-        
-        // 1. Crear sala si no existe
-        if (!salas[roomId]) {
-            salas[roomId] = [];
-            configSalas[roomId] = { 
-                maxPlayers: 10, 
-                category: "Futbolistas",
-                adminId: userId // <--- EL PRIMERO EN CREARLA ES EL REY PARA SIEMPRE
-            }; 
-        }
 
-        // 2. Validar límite
-        const limite = configSalas[roomId].maxPlayers;
-        // Permitimos entrar si la sala está llena PERO es el Admin reconectándose (Excepción VIP)
-        const esElAdmin = configSalas[roomId].adminId === userId;
-        
-        if (salas[roomId].length >= limite && !esElAdmin) {
-            // Solo bloqueamos si no es el admin tratando de volver
-            // (Nota: Para hacerlo perfecto tendríamos que chequear si ya estaba en la lista, pero esto sirve por ahora)
-        }
-
-        socket.join(roomId);
-        socket.roomId = roomId;
-        socket.userId = userId; // Guardamos el userId en el socket para usarlo al desconectar
-
-        // 3. Lógica de Lista de Jugadores
-        // Buscamos si este usuario ya estaba en la lista (por si refrescó rápido)
-        const indiceExistente = salas[roomId].findIndex(u => u.userId === userId);
-
-        if (indiceExistente !== -1) {
-            // SI YA EXISTÍA: Actualizamos su socket.id y nombre, pero MANTENEMOS SU POSICIÓN
-            salas[roomId][indiceExistente].id = socket.id;
-            salas[roomId][indiceExistente].nombre = nombre; // Por si se cambió el nombre
-            salas[roomId][indiceExistente].isReady = false; // Al refrescar se quita el "Listo"
-        } else {
-            // SI ES NUEVO: Lo agregamos al final
-            salas[roomId].push({ id: socket.id, userId, nombre, isReady: false });
-        }
-
-        io.to(roomId).emit('update_players', salas[roomId]);
-        io.to(roomId).emit('update_config', configSalas[roomId]);
-    });*/
-
+    // ... (Eventos player_ready, change_max, change_cat SIGUEN IGUAL) ...
     socket.on('player_ready', () => {
         const roomId = socket.roomId;
         if (roomId && salas[roomId]) {
@@ -135,11 +93,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Validamos acciones de Admin usando userId
     socket.on('change_max_players', (nuevoMax) => {
         const roomId = socket.roomId;
         if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId) {
-            if (nuevoMax >= 3 && nuevoMax <= 15) {
+            if (nuevoMax >= 1 && nuevoMax <= 15) { 
                 configSalas[roomId].maxPlayers = nuevoMax;
                 io.to(roomId).emit('update_config', configSalas[roomId]);
             }
@@ -154,56 +111,103 @@ io.on('connection', (socket) => {
         }
     });
 
+    // EVENTO: SALIR VOLUNTARIAMENTE (Sin fantasma)
     socket.on('salir_sala', () => {
         const roomId = socket.roomId;
         const userId = socket.userId;
+        
+        // Si sale queriendo, borramos su timer de fantasma si existiera
+        if (playerTimers[userId]) {
+            clearTimeout(playerTimers[userId]);
+            delete playerTimers[userId];
+        }
 
         if (roomId && salas[roomId]) {
-            // Buscamos y borramos el usuario
             const index = salas[roomId].findIndex(u => u.userId === userId);
-
             if (index !== -1) {
-                salas[roomId].splice(index, 1); // Lo borramos de la lista
+                salas[roomId].splice(index, 1);
 
-                //aviso a los que quedan
+                asignarNuevoAdmin(roomId, userId);
                 io.to(roomId).emit('update_players', salas[roomId]);
             }
-
-            // su no queda nadie, borramos la sala
-            if (salas[roomId].lenght === 0) {
-                delete salas[roomId];
-                delete configSalas[roomId];
-            }
-
-            // desconectamos al socket de la sala
+            // Chequeo de sala vacía
+            checkSalaVacia(roomId);
+            
             socket.leave(roomId);
             socket.roomId = null;
         }
     });
 
+    // EVENTO: DESCONEXIÓN (Activa el Fantasma)
     socket.on('disconnect', () => {
         const roomId = socket.roomId;
+        const userId = socket.userId;
+
         if (roomId && salas[roomId]) {
-            // Lo quitamos de la lista visual
-            const index = salas[roomId].findIndex(player => player.id === socket.id);
-            if (index !== -1) {
-                salas[roomId].splice(index, 1);
+            const user = salas[roomId].find(u => u.userId === userId);
+            
+            if (user) {
+                // 1. MARCAR COMO OFFLINE (Gris en el frontend)
+                user.isOnline = false; 
                 io.to(roomId).emit('update_players', salas[roomId]);
-            }
 
-            // NOTA IMPORTANTE:
-            // NO borramos 'adminId' de configSalas. 
-            // Si el admin se fue (refrescó), la sala se queda "sin admin" un segundo,
-            // pero cuando vuelva a entrar con su userId, el servidor dirá: "Ah, tú eres el adminId, toma el control".
+                console.log(`Usuario ${userId} desconectado. Esperando 60s...`);
 
-            if (salas[roomId].length === 0) {
-                // Solo si la sala queda vacía de verdad, borramos la config
-                delete salas[roomId];
-                delete configSalas[roomId];
+                // 2. ACTIVAR BOMBA DE TIEMPO (60 segundos)
+                playerTimers[userId] = setTimeout(() => {
+                    if (salas[roomId]) {
+                        // Si pasó el tiempo y sigue offline, lo borramos
+                        const index = salas[roomId].findIndex(u => u.userId === userId);
+                        if (index !== -1) {
+                            salas[roomId].splice(index, 1);
+                            console.log(`Usuario ${userId} eliminado por inactividad.`);
+                            asignarNuevoAdmin(roomId, userId);
+                            io.to(roomId).emit('update_players', salas[roomId]);
+                        }
+                        // Revisamos si al borrarlo la sala quedó vacía
+                        checkSalaVacia(roomId);
+                    }
+                    delete playerTimers[userId];
+                }, 60000); 
             }
         }
     });
 });
+
+// Función auxiliar para borrar sala con espera
+function checkSalaVacia(roomId) {
+    if (salas[roomId] && salas[roomId].length === 0) {
+        // Solo borramos la sala si REALMENTE no hay nadie (ni conectados ni fantasmas en el array)
+        // Nota: Como los fantasmas siguen en el array 'salas', la sala no se borra hasta que el último fantasma muere.
+        console.log(`Sala ${roomId} totalmente vacía. Borrando en 30s...`);
+        roomTimers[roomId] = setTimeout(() => {
+            if (salas[roomId] && salas[roomId].length === 0) {
+                delete salas[roomId];
+                delete configSalas[roomId];
+                delete roomTimers[roomId];
+                console.log(`Sala ${roomId} eliminada definitivamente.`);
+            }
+        }, 30000);
+    }
+}
+
+function asignarNuevoAdmin(roomId, idJugadorSaliente){
+    // verifico que la sala y su config existan
+    if(salas[roomId] && configSalas[roomId] && salas[roomId].length > 0){
+        // si el que se fue era admin
+        if(configSalas[roomId].adminId === idJugadorSaliente){
+            // asigno el nuevo admin al primer jugador de la sala
+            const nuevoAdmin = salas[roomId][0];
+
+            if(nuevoAdmin){
+                configSalas[roomId].adminId = nuevoAdmin.userId;
+                console.log(`Nuevo admin en sala ${roomId}: ${nuevoAdmin.nombre}`);
+
+                io.to(roomId).emit('update_config', configSalas[roomId]);
+            }
+        }
+    }
+}
 
 server.listen(3001, () => {
     console.log('SERVIDOR CORRIENDO EN PUERTO 3001');
