@@ -23,6 +23,7 @@ const salas = {};
 const configSalas = {}; 
 const roomTimers = {};   // Temporizadores para borrar SALAS vacías
 const playerTimers = {}; // <--- NUEVO: Temporizadores para borrar JUGADORES desconectados
+const activeGames = {}; // Guardo la info de la partida
 
 io.on('connection', (socket) => {
     
@@ -80,6 +81,17 @@ io.on('connection', (socket) => {
 
         io.to(roomId).emit('update_players', salas[roomId]);
         io.to(roomId).emit('update_config', configSalas[roomId]);
+
+        if (configSalas[roomId].status === 'playing' && activeGames[roomId]) {
+            const juego = activeGames[roomId];
+            const esImpostor = juego.impostorId === userId;
+
+            socket.emit('game_started', {
+                role: esImpostor ? 'impostor' : 'tripulante',
+                word: esImpostor ? null : juego.word
+            });
+            console.log('Jugador ${nombre} reconectado a partida en curso en sala ${roomId}.');
+        }
     });
 
     socket.on('player_ready', () => {
@@ -182,12 +194,20 @@ io.on('connection', (socket) => {
             const jugadores = salas[roomId];
             const config = configSalas[roomId];
 
+            config.status = 'playing';
+
             // elegir la palabra segun la categoria
             const palabrasDisponibles = palabrasDB[config.category] || ["Palabra Generica"];
             const palabraSecreta = palabrasDisponibles[Math.floor(Math.random() * palabrasDisponibles.length)];
 
             // elegir al impostor
             const impostorIndex = Math.floor(Math.random() * jugadores.length);
+
+            const impostorUserId = jugadores[impostorIndex].userId;
+            activeGames[roomId] = {
+                word: palabraSecreta,
+                impostorId: impostorUserId
+            };
 
             // Repartir roles (mensajes privados)
             jugadores.forEach((jugador, index) => {
@@ -214,6 +234,7 @@ function checkSalaVacia(roomId) {
             if (salas[roomId] && salas[roomId].length === 0) {
                 delete salas[roomId];
                 delete configSalas[roomId];
+                delete activeGames[roomId];
                 delete roomTimers[roomId];
                 console.log(`Sala ${roomId} eliminada definitivamente.`);
             }
