@@ -146,12 +146,21 @@ function Lobby() {
     const handleGameStart = (data) => {
         setGameData(data); 
     };
+    const handleGameReveal = (data) => {
+            // Agregamos la info de revelación al estado actual del juego
+            setGameData(prev => ({ 
+                ...prev, 
+                ...data, 
+                isRevealed: true // Bandera para cambiar la vista en Game.jsx
+            }));
+        };
    
     // Activamos los listeners
     socket.on("update_players", handleUpdatePlayers);
     socket.on("update_config", handleUpdateConfig);
     socket.on("error_sala", handleErrorSala);
     socket.on("game_started", handleGameStart); // <--- AGREGADO
+    socket.on("game_revealed", handleGameReveal);
 
     // Limpiamos al salir (Fundamental para no tener duplicados)
     return () => {
@@ -159,6 +168,7 @@ function Lobby() {
       socket.off("update_config", handleUpdateConfig);
       socket.off("error_sala", handleErrorSala);
       socket.off("game_started", handleGameStart);
+      socket.off("game_revealed", handleGameReveal);
     };
   }, [navigate]); // Array de dependencias mínimo
 
@@ -210,9 +220,17 @@ function Lobby() {
       navigate("/");
     }
   };
+  
+  const revelarJuego = () => {
+        socket.emit('reveal_game');
+    };
+
+    const siguienteRonda = () => {
+        socket.emit('next_round');
+    };
 
   if (errorMsg) return <div className="flex items-center justify-center h-screen text-2xl font-bold text-red-500 bg-slate-950">{errorMsg}</div>;
-  if (gameData) return <Game role={gameData.role} word={gameData.word} />;
+  if (gameData) return <Game role={gameData.role} word={gameData.word} isRevealed={gameData.isRevealed} impostorName={gameData.impostorName} finalWord={gameData.word} soyAdmin={soyAdmin} onReveal={revelarJuego} onNextRound={siguienteRonda}/>;
   return (
     <div className="relative flex flex-col items-center justify-between w-full h-screen overflow-hidden bg-slate-950 text-yellow-50">
       

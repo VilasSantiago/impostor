@@ -222,6 +222,74 @@ io.on('connection', (socket) => {
             console.log('Partida inciada en sala ${roomId}. Palabra: ${palabraSecreta}');
         }
     });
+
+    // ... (después del evento start_game) ...
+
+    // 1. REVELAR RESULTADOS
+    socket.on('reveal_game', () => {
+        const roomId = socket.roomId;
+        if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId) {
+            
+            const juego = activeGames[roomId];
+            const jugadores = salas[roomId];
+
+            if (juego) {
+                // Buscamos el nombre del impostor
+                const impostorData = jugadores.find(j => j.userId === juego.impostorId);
+                const nombreImpostor = impostorData ? impostorData.nombre : "Desconocido";
+
+                // Enviamos a todos la verdad
+                io.to(roomId).emit('game_revealed', {
+                    impostorName: nombreImpostor,
+                    word: juego.word
+                });
+                
+                // Cambiamos estado para evitar reconexiones raras
+                configSalas[roomId].status = 'revealed';
+            }
+        }
+    });
+
+    // 2. SIGUIENTE RONDA (Loop rápido)
+    socket.on('next_round', () => {
+        const roomId = socket.roomId;
+        // Validación básica de admin
+        if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId) {
+            
+            // Reusamos la lógica de iniciar juego
+            const config = configSalas[roomId];
+            const jugadores = salas[roomId];
+            
+            // A. Actualizamos estado
+            config.status = 'playing';
+
+            // B. Nueva Palabra y Nuevo Impostor
+            const palabrasDisponibles = palabrasDB[config.category] || ["Genérico"];
+            const palabraSecreta = palabrasDisponibles[Math.floor(Math.random() * palabrasDisponibles.length)];
+            
+            // Nuevo impostor al azar
+            const impostorIndex = Math.floor(Math.random() * jugadores.length);
+            const impostorUserId = jugadores[impostorIndex].userId;
+
+            // C. Guardamos la nueva partida
+            activeGames[roomId] = {
+                word: palabraSecreta,
+                impostorId: impostorUserId
+            };
+
+            // D. Repartimos las cartas nuevas
+            jugadores.forEach((jugador, index) => {
+                const esImpostor = index === impostorIndex;
+                io.to(jugador.id).emit('game_started', {
+                    role: esImpostor ? 'impostor' : 'tripulante',
+                    word: esImpostor ? null : palabraSecreta
+                });
+            });
+
+            console.log(`Nueva ronda en ${roomId}. Palabra: ${palabraSecreta}`);
+        }
+    });
+    
 });
 
 // Función auxiliar para borrar sala con espera
