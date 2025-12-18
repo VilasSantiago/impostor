@@ -1,0 +1,12 @@
+{
+  "Futbolistas": ["Messi", "Cristiano Ronaldo", "Maradona", "Pelé", "Neymar", "Mbappé"],
+  "Equipos de Fútbol": ["Real Madrid", "Barcelona", "Boca Juniors", "River Plate", "Manchester United"],
+  "Cantantes": ["Shakira", "Bad Bunny", "Taylor Swift", "Michael Jackson", "Freddie Mercury"],
+  "Famosos": ["Elon Musk", "Will Smith", "Tom Cruise", "Kim Kardashian"],
+  "Películas": ["Titanic", "Avatar", "El Padrino", "Harry Potter", "Star Wars"],
+  "Animales": ["León", "Elefante", "Perro", "Gato", "Pingüino", "Delfín"],
+  "Países": ["Argentina", "Brasil", "España", "Japón", "Estados Unidos"],
+  "Marcas de Autos": ["Ferrari", "Toyota", "Ford", "Tesla", "BMW"],
+  "Comida": ["Pizza", "Hamburguesa", "Sushi", "Tacos", "Asado"],
+  "Objetos de la Casa": ["Silla", "Mesa", "Cama", "Heladera", "Televisor"]
+}

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams }
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
+import Game from './Game';
 
 const BACKEND_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const socket = io(BACKEND_URL);
@@ -126,12 +127,14 @@ function Lobby() {
   
   const [jugadores, setJugadores] = useState([]);
   const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas", adminId: null });
+  const [gameData, setGameData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const myUserId = getUserId();
 
+  // 1. EFECTO DE "ESCUCHA" (Configura los listeners una sola vez y limpia al salir)
   useEffect(() => {
-    // defino que hacen cuando llegan mensajes
+    // Definimos las funciones manejadoras
     const handleUpdatePlayers = (lista) => setJugadores(lista);
     const handleUpdateConfig = (cfg) => setConfig(cfg);
     const handleErrorSala = (msg) => {
@@ -139,41 +142,39 @@ function Lobby() {
         alert(msg);
         navigate("/");
     };
-    // activo los listeners
+    // Nuevo handler para iniciar el juego
+    const handleGameStart = (data) => {
+        setGameData(data); 
+    };
+   
+    // Activamos los listeners
     socket.on("update_players", handleUpdatePlayers);
     socket.on("update_config", handleUpdateConfig);
     socket.on("error_sala", handleErrorSala);
+    socket.on("game_started", handleGameStart); // <--- AGREGADO
 
-    // limpio al salir
+    // Limpiamos al salir (Fundamental para no tener duplicados)
     return () => {
       socket.off("update_players", handleUpdatePlayers);
       socket.off("update_config", handleUpdateConfig);
       socket.off("error_sala", handleErrorSala);
-    }
-  }, [navigate]);
+      socket.off("game_started", handleGameStart);
+    };
+  }, [navigate]); // Array de dependencias mínimo
 
+  // 2. EFECTO DE "ACCIÓN" (Solo se ejecuta cuando entras a la sala)
   useEffect(() => {
     if (!nombre || !roomId) return;
 
+    // Solo emitimos, NO ponemos socket.on aquí adentro
     socket.emit("join_room", { 
         roomId, 
         nombre, 
         userId: myUserId 
     });
 
-    socket.on("update_players", (lista) => setJugadores(lista));
-    socket.on("update_config", (cfg) => setConfig(cfg));
-    socket.on("error_sala", (msg) => {
-        setErrorMsg(msg);
-        alert(msg);
-    });
-
-    return () => {
-      socket.off("update_players");
-      socket.off("update_config");
-      socket.off("error_sala");
-    };
   }, [roomId, nombre, myUserId]);
+    
 
   const soyAdmin = config.adminId === myUserId; 
   const miUsuario = jugadores.find(p => p.id === socket.id); // OJO: Aquí podrías querer buscar por userId si usaste persistencia total, pero por socket.id funciona para el estado visual inmediato
@@ -193,7 +194,7 @@ function Lobby() {
   
   const iniciarJuego = () => {
       if(soyAdmin && puedenIniciar) {
-          alert(`¡JUEGO INICIADO!\nCategoría: ${config.category}\nJugadores: ${config.maxPlayers}`);
+          socket.emit("start_game");
       }
   };
 
@@ -211,7 +212,7 @@ function Lobby() {
   };
 
   if (errorMsg) return <div className="flex items-center justify-center h-screen text-2xl font-bold text-red-500 bg-slate-950">{errorMsg}</div>;
-
+  if (gameData) return <Game role={gameData.role} word={gameData.word} />;
   return (
     <div className="relative flex flex-col items-center justify-between w-full h-screen overflow-hidden bg-slate-950 text-yellow-50">
       

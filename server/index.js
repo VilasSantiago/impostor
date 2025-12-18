@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const palabrasDB = require('./palabras.json');
 
 const app = express();
 app.use(cors());
@@ -170,6 +171,35 @@ io.on('connection', (socket) => {
                     delete playerTimers[userId];
                 }, 60000); 
             }
+        }
+    });
+
+    socket.on('start_game', () => {
+        const roomId = socket.roomId;
+        // validar que exista la sala y que pide el admin
+        if (roomId && configSalas[roomId] && configSalas[roomId].adminId === socket.userId){
+
+            const jugadores = salas[roomId];
+            const config = configSalas[roomId];
+
+            // elegir la palabra segun la categoria
+            const palabrasDisponibles = palabrasDB[config.category] || ["Palabra Generica"];
+            const palabraSecreta = palabrasDisponibles[Math.floor(Math.random() * palabrasDisponibles.length)];
+
+            // elegir al impostor
+            const impostorIndex = Math.floor(Math.random() * jugadores.length);
+
+            // Repartir roles (mensajes privados)
+            jugadores.forEach((jugador, index) => {
+                const esImpostor = index === impostorIndex;
+
+                // enviar a cada socket su rol
+                io.to(jugador.id).emit('game_started', {
+                    role: esImpostor ? 'impostor' : 'tripulante',
+                    word: esImpostor ? null : palabraSecreta
+                });
+            });
+            console.log('Partida inciada en sala ${roomId}. Palabra: ${palabraSecreta}');
         }
     });
 });
