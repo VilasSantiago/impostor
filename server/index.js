@@ -289,7 +289,30 @@ io.on('connection', (socket) => {
             console.log(`Nueva ronda en ${roomId}. Palabra: ${palabraSecreta}`);
         }
     });
-    
+
+    socket.on('return_to_lobby', () => {
+        const roomId = socket.roomId;
+        if (roomId && configSalas[roomId]) {
+            
+            // 1. Cambiamos estado de la sala
+            configSalas[roomId].status = 'lobby';
+            
+            // 2. Borramos los datos de la partida activa
+            delete activeGames[roomId];
+
+            // 3. Reseteamos a los jugadores (Ya no están listos)
+            if (salas[roomId]) {
+                salas[roomId].forEach(p => p.isReady = false);
+            }
+
+            // 4. Avisamos a todos
+            io.to(roomId).emit('update_players', salas[roomId]); // Para actualizar los ticks verdes
+            io.to(roomId).emit('game_reset'); // Para quitar la pantalla de juego
+            
+            console.log(`Sala ${roomId} volvió al lobby.`);
+        }
+    });
+
 });
 
 // Función auxiliar para borrar sala con espera

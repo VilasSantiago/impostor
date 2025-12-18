@@ -154,6 +154,10 @@ function Lobby() {
                 isRevealed: true // Bandera para cambiar la vista en Game.jsx
             }));
         };
+    
+    const handleGameReset = () => {
+      setGameData(null);
+    };
    
     // Activamos los listeners
     socket.on("update_players", handleUpdatePlayers);
@@ -161,6 +165,7 @@ function Lobby() {
     socket.on("error_sala", handleErrorSala);
     socket.on("game_started", handleGameStart); // <--- AGREGADO
     socket.on("game_revealed", handleGameReveal);
+    socket.on("game_reset", handleGameReset);
 
     // Limpiamos al salir (Fundamental para no tener duplicados)
     return () => {
@@ -169,6 +174,7 @@ function Lobby() {
       socket.off("error_sala", handleErrorSala);
       socket.off("game_started", handleGameStart);
       socket.off("game_revealed", handleGameReveal);
+      socket.off("game_reset", handleGameReset);
     };
   }, [navigate]); // Array de dependencias mínimo
 
@@ -222,15 +228,19 @@ function Lobby() {
   };
   
   const revelarJuego = () => {
-        socket.emit('reveal_game');
+    socket.emit('reveal_game');
     };
 
-    const siguienteRonda = () => {
-        socket.emit('next_round');
-    };
+  const siguienteRonda = () => {
+    socket.emit('next_round');
+  };
+
+  const volverAlLobby = () => {
+    socket.emit("return_to_lobby");
+  }
 
   if (errorMsg) return <div className="flex items-center justify-center h-screen text-2xl font-bold text-red-500 bg-slate-950">{errorMsg}</div>;
-  if (gameData) return <Game role={gameData.role} word={gameData.word} isRevealed={gameData.isRevealed} impostorName={gameData.impostorName} finalWord={gameData.word} soyAdmin={soyAdmin} onReveal={revelarJuego} onNextRound={siguienteRonda}/>;
+  if (gameData) return <Game role={gameData.role} word={gameData.word} isRevealed={gameData.isRevealed} impostorName={gameData.impostorName} finalWord={gameData.word} soyAdmin={soyAdmin} onReveal={revelarJuego} onNextRound={siguienteRonda} onReturnToLobby={volverAlLobby}/>;
   return (
     <div className="relative flex flex-col items-center justify-between w-full h-screen overflow-hidden bg-slate-950 text-yellow-50">
       

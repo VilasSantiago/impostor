@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-function Game({ role, word, isRevealed, impostorName, finalWord, onReveal, onNextRound, soyAdmin }) {
+function Game({ role, word, isRevealed, impostorName, finalWord, onReveal, onNextRound, onReturnToLobby, soyAdmin }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   // --- MODO 1: RESULTADOS (PANTALLA DE REVELACIÓN) ---
@@ -37,6 +37,13 @@ function Game({ role, word, isRevealed, impostorName, finalWord, onReveal, onNex
                 Esperando al líder...
             </p>
         )}
+        <button 
+                onClick={onReturnToLobby}
+                className="w-full max-w-sm py-3 mt-4 text-sm font-bold tracking-widest uppercase transition-all border-2 text-slate-400 border-slate-700 rounded-xl hover:bg-slate-800 hover:text-white hover:border-slate-500"
+            >
+                ⚙️ Volver al Lobby
+            </button>
+
       </div>
     );
   }
