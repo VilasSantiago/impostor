@@ -1,14 +1,21 @@
-// client/src/App.jsx
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 import Game from './Game';
 
+/*
+  Conexion unica al servidor usando Socket.io
+  La URL del servidor se toma de las variables de entorno
+  o se usa localhost:3001 por defecto.
+*/
 const BACKEND_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const socket = io(BACKEND_URL);
 
-// Generador de ID persistente
+/*
+  Genera un Id unico para el navegador y lo guarda en localStorage
+  para persistencia entre sesiones.
+*/
 const getUserId = () => {
   let id = localStorage.getItem("userId");
   if (!id) {
@@ -18,7 +25,6 @@ const getUserId = () => {
   return id;
 };
 
-// COMPONENTE PRINCIPAL DE RUTAS
 function App() {
   return (
       <BrowserRouter>
@@ -33,18 +39,26 @@ function App() {
   );
 }
 
-// --- PANTALLA DE INICIO (HOME) ---
+/*
+  PANTALLA DE INICIO
+*/
 function Home() {
   const [nombre, setNombre] = useState("");
   const [salaId, setSalaId] = useState("");
   const navigate = useNavigate();
-
+  /* 
+    Verifica que el nombre no este vacio.
+    Crea un ID de sala aleatorio y navega a ella.
+  */
   const crearSala = () => {
     if(!nombre.trim()) return alert("Por favor ingresa tu nombre.");
     const id = Math.random().toString(36).substring(7).toUpperCase();
     navigate(`/sala/${id}?nombre=${nombre}`);
   };
-
+  /*
+    Verifica que el nombre y el ID de sala no esten vacios.
+    Navega a la sala especificada.
+  */
   const unirseSala = () => {
     if(!nombre.trim() || !salaId.trim()) return alert("Faltan datos.");
     navigate(`/sala/${salaId}?nombre=${nombre}`);
@@ -112,13 +126,16 @@ function Home() {
   );
 }
 
-// --- CONFIGURACIÓN Y LOBBY ---
-
 const CATEGORIAS = [
   "Futbolistas", "Equipos de Fútbol", "Cantantes", "Famosos", 
   "Películas", "Animales", "Países", "Marcas de Autos", "Comida", "Objetos de la Casa"
 ];
-
+/*
+  PANTALLA DE LOBBY
+  Estados: jugadores: lista que llega del servidor,
+  configuracion: las reglas (categoria, limite, admin),
+  gameData: Si es null, es el lobby. Si tiene datos es la pantalla de juego.
+*/
 function Lobby() {
   const navigate = useNavigate();
   const { roomId } = useParams();
@@ -132,9 +149,14 @@ function Lobby() {
 
   const myUserId = getUserId();
 
-  // 1. EFECTO DE "ESCUCHA" (Configura los listeners una sola vez y limpia al salir)
+  /*
+    Efecto de escucha
+    Configura los listeners de socket.io.
+    Define que hacer cuando llegan los eventos del servidor.
+    Limpieza al salir del componente. Apaga los listeners para no
+    recibir mensajes duplicados.
+  */
   useEffect(() => {
-    // Definimos las funciones manejadoras
     const handleUpdatePlayers = (lista) => setJugadores(lista);
     const handleUpdateConfig = (cfg) => setConfig(cfg);
     const handleErrorSala = (msg) => {
@@ -142,16 +164,16 @@ function Lobby() {
         alert(msg);
         navigate("/");
     };
-    // Nuevo handler para iniciar el juego
+
     const handleGameStart = (data) => {
         setGameData(data); 
     };
+
     const handleGameReveal = (data) => {
-            // Agregamos la info de revelación al estado actual del juego
             setGameData(prev => ({ 
                 ...prev, 
                 ...data, 
-                isRevealed: true // Bandera para cambiar la vista en Game.jsx
+                isRevealed: true 
             }));
         };
     
@@ -159,15 +181,13 @@ function Lobby() {
       setGameData(null);
     };
    
-    // Activamos los listeners
     socket.on("update_players", handleUpdatePlayers);
     socket.on("update_config", handleUpdateConfig);
     socket.on("error_sala", handleErrorSala);
-    socket.on("game_started", handleGameStart); // <--- AGREGADO
+    socket.on("game_started", handleGameStart);
     socket.on("game_revealed", handleGameReveal);
     socket.on("game_reset", handleGameReset);
 
-    // Limpiamos al salir (Fundamental para no tener duplicados)
     return () => {
       socket.off("update_players", handleUpdatePlayers);
       socket.off("update_config", handleUpdateConfig);
@@ -176,13 +196,15 @@ function Lobby() {
       socket.off("game_revealed", handleGameReveal);
       socket.off("game_reset", handleGameReset);
     };
-  }, [navigate]); // Array de dependencias mínimo
+  }, [navigate]);
 
-  // 2. EFECTO DE "ACCIÓN" (Solo se ejecuta cuando entras a la sala)
+  /*
+    Efecto de unión a sala.
+    Se ejectua solo al entrar. Envia el evento para unirse a la sala.
+  */
   useEffect(() => {
     if (!nombre || !roomId) return;
 
-    // Solo emitimos, NO ponemos socket.on aquí adentro
     socket.emit("join_room", { 
         roomId, 
         nombre, 
@@ -193,10 +215,11 @@ function Lobby() {
     
 
   const soyAdmin = config.adminId === myUserId; 
-  const miUsuario = jugadores.find(p => p.id === socket.id); // OJO: Aquí podrías querer buscar por userId si usaste persistencia total, pero por socket.id funciona para el estado visual inmediato
+  const miUsuario = jugadores.find(p => p.id === socket.id); 
   const estoyListo = miUsuario?.isReady || false;
   const puedenIniciar = jugadores.length >= 2 && jugadores.every(p => p.isReady);
 
+  
   const cambiarMaxJugadores = (e) => {
       const nuevoMax = parseInt(e.target.value);
       socket.emit("change_max_players", nuevoMax);

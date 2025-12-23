@@ -1,0 +1,17 @@
+1. Duplicado de funciones
+
+2. Ver mac
+
+3. Activar el server desde la pantalla de inicio porque si es la primera
+vez tarda en cargar render.com
+
+4. actualizar las listas de palabras
+
+5. cartel emergente cuando alguien se va offline o se desconecta.
+
+6. aumentar el tiempo de espera
+
+7. si alguien cierra el navegador y el admin tamb nose por que
+se le asigna admin al que salio, pero en realidad no hay nadie.
+
+8. No podes entrar a una partida existente.
