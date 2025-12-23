@@ -391,6 +391,10 @@ function asignarNuevoAdmin(roomId, idJugadorSaliente){
     }
 }
 
+app.get('/health', (req, res) => {
+    res.send('Servidor de Impostor Activo');
+});
+
 server.listen(3001, () => {
     console.log('SERVIDOR CORRIENDO EN PUERTO 3001');
 });

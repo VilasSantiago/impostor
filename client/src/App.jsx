@@ -46,6 +46,25 @@ function Home() {
   const [nombre, setNombre] = useState("");
   const [salaId, setSalaId] = useState("");
   const navigate = useNavigate();
+
+  const [serverStatus, setServerStatus] = useState(socket.connected ? "ready" : "waking");
+  useEffect(() => {
+    const onConnect = () => setServerStatus("ready");
+    const onDisconnect = () => setServerStatus("sleeping");
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    fetch(`${BACKEND_URL}/health`)
+      .then(() => console.log("Servidor despierto por HTTP"))
+      .catch((err) => console.log("Despertando...", err));
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+
   /* 
     Verifica que el nombre no este vacio.
     Crea un ID de sala aleatorio y navega a ella.
@@ -77,6 +96,14 @@ function Home() {
         </span>
       </h1>
 
+      {/* Debajo del título */}
+      <div className="flex items-center gap-2 mt-4">
+         <div className={`w-3 h-3 rounded-full ${serverStatus === 'ready' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 animate-pulse'}`}></div>
+         <span className="text-xs font-bold tracking-widest uppercase text-slate-500">
+            {serverStatus === 'ready' ? 'SISTEMA ONLINE' : 'CONECTANDO SERVIDOR...'}
+         </span>
+      </div>
+
       {/* INPUT NOMBRE */}
       <div className="w-full max-w-sm mt-12">
         <label className="block mb-2 text-sm font-bold tracking-widest text-center text-yellow-600">IDENTIFICACIÓN</label>
@@ -94,9 +121,14 @@ function Home() {
         {/* BOTÓN CREAR */}
         <button 
           onClick={crearSala} 
-          className="w-full h-16 text-2xl font-black tracking-widest uppercase transition-all border-b-4 border-yellow-900 shadow-lg rounded-xl bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 text-slate-900 active:border-b-0 active:translate-y-1 hover:shadow-yellow-500/20"
+          disabled={serverStatus !== 'ready'} // <--- BLOQUEO
+          className={`w-full h-16 text-2xl font-black tracking-widest uppercase transition-all border-b-4 shadow-lg rounded-xl 
+            ${serverStatus === 'ready' 
+                ? 'border-yellow-900 bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 text-slate-900 cursor-pointer' 
+                : 'border-slate-700 bg-slate-800 text-slate-500 cursor-wait' 
+            }`}
         >
-          Crear Sala
+          {serverStatus === 'ready' ? 'Crear Sala' : 'Iniciando Motores...'}
         </button>
         
         {/* SEPARADOR */}
@@ -115,7 +147,12 @@ function Home() {
           />
           <button 
             onClick={unirseSala}
-            className="w-32 font-bold text-yellow-500 transition-all border-2 border-yellow-700 h-14 rounded-xl hover:bg-yellow-900/30 hover:text-yellow-300 hover:border-yellow-400 active:scale-95"
+            disabled={serverStatus !== 'ready'}
+            className={`w-32 font-bold transition-all border-2 h-14 rounded-xl active:scale-95
+              ${serverStatus === 'ready' 
+                ? 'border-yellow-700 hover:bg-yellow-900/30 bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 text-slate-900 cursor-pointer' 
+                : 'border-slate-700 bg-slate-800 text-slate-500 cursor-wait' 
+            }`}
           >
             ENTRAR
           </button>
