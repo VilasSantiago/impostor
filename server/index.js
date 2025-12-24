@@ -58,7 +58,12 @@ io.on('connection', (socket) => {
 
         if (!salas[roomId]) {
             salas[roomId] = [];
-            configSalas[roomId] = { maxPlayers: 10, category: "Futbolistas", adminId: userId }; 
+            configSalas[roomId] = { 
+                maxPlayers: 10, 
+                category: "Futbolistas", 
+                adminId: userId,
+                status: 'lobby'
+            }; 
         }
 
         const usuarioExistente = salas[roomId].find(u => u.userId === userId);
@@ -69,13 +74,11 @@ io.on('connection', (socket) => {
                 socket.emit('error_sala', '⛔ ¡Misión abortada! La nave está llena.');
                 return; 
             }
-            if (configSalas[roomId].status === 'lobby'){
-            socket.emit('error_sala', '⛔ La partida ya comenzó. Espera a la siguiente ronda.');
-            return;
+            if (configSalas[roomId].status !== 'lobby'){
+                socket.emit('error_sala', '⛔ La partida ya comenzó. Espera a la siguiente ronda.');
+                return;
+            }   
         }
-        }
-
-        
 
         socket.join(roomId);
         socket.roomId = roomId;
@@ -256,7 +259,7 @@ io.on('connection', (socket) => {
                     word: esImpostor ? null : palabraSecreta
                 });
             });
-            console.log('Partida inciada en sala ${roomId}. Palabra: ${palabraSecreta}');
+            console.log(`Partida inciada en sala ${roomId}. Palabra: ${palabraSecreta}`);
         }
     });
 
