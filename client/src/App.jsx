@@ -2,8 +2,9 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams }
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
-import Modal from './Modal.jsx';
+import Modal from './Modal';
 import Game from './Game';
+import ToastContainer from './Toast';
 
 /*
   Conexion unica al servidor usando Socket.io
@@ -207,9 +208,16 @@ function Lobby() {
   const [config, setConfig] = useState({ maxPlayers: 10, category: "Futbolistas", adminId: null });
   const [gameData, setGameData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-
+  const [notificaciones, setNotificaciones] = useState([]);
   const myUserId = getUserId();
 
+  const addNotification = (data) => {
+    const id = Date.now();
+    setNotificaciones(prev => [...prev, {...data, id}]);
+  };
+  const removeNotification = (id) => {
+    setNotificaciones(prev => prev.filter(n => n.id !== id));
+  };
   /*
     Efecto de escucha
     Configura los listeners de socket.io.
@@ -241,21 +249,27 @@ function Lobby() {
     const handleGameReset = () => {
       setGameData(null);
     };
-   
+
+    const handleNotification = (data) => {
+      addNotification(data);
+    };
+    
     socket.on("update_players", handleUpdatePlayers);
     socket.on("update_config", handleUpdateConfig);
     socket.on("error_sala", handleErrorSala);
     socket.on("game_started", handleGameStart);
     socket.on("game_revealed", handleGameReveal);
     socket.on("game_reset", handleGameReset);
+    socket.on("notificacion", handleNotification);
 
-    return () => {
+    return () => {   
       socket.off("update_players", handleUpdatePlayers);
       socket.off("update_config", handleUpdateConfig);
       socket.off("error_sala", handleErrorSala);
       socket.off("game_started", handleGameStart);
       socket.off("game_revealed", handleGameReveal);
       socket.off("game_reset", handleGameReset);
+      socket.off("notificacion", handleNotification);
     };
   }, [navigate]);
 
@@ -490,6 +504,10 @@ function Lobby() {
         onConfirm={salirDeSala}
         title="¿ABANDONAR MISIÓN?"
         message="Si sales ahora, perderás tu lugar en la nave. ¿Estás seguro?"
+      />
+      <ToastContainer
+        notifications={notificaciones}
+        removeNotification={removeNotification}
       />
     </div>
   );

@@ -171,14 +171,28 @@ io.on('connection', (socket) => {
         }
 
         if (roomId && salas[roomId]) {
+            // 2. BUSCAMOS AL JUGADOR (Antes de borrarlo)
+            const user = salas[roomId].find(u => u.userId === userId);
             const index = salas[roomId].findIndex(u => u.userId === userId);
+
             if (index !== -1) {
+                // 3. ENVIAMOS NOTIFICACIÓN (Si el usuario existe)
+                if (user) {
+                    socket.to(roomId).emit('notificacion', { // <--- Nombre correcto
+                        msg: `👋 ${user.nombre} abandonó la nave.`,
+                        type: 'info'
+                    });
+                }
+
+                // 4. BORRAMOS AL JUGADOR
                 salas[roomId].splice(index, 1);
 
+                // 5. ASIGNAMOS NUEVO ADMIN Y ACTUALIZAMOS
                 asignarNuevoAdmin(roomId, userId);
                 io.to(roomId).emit('update_players', salas[roomId]);
             }
 
+            // 6. CHEQUEOS FINALES
             checkSalaVacia(roomId);
             
             socket.leave(roomId);
@@ -206,6 +220,10 @@ io.on('connection', (socket) => {
 
                 console.log(`Usuario ${userId} desconectado. Esperando 60s...`);
 
+                socket.to(roomId).emit('notificacion', {
+                    msg: `⚠️ ${user.nombre} perdió la conexión.`,
+                    type: 'error'
+                })
                 playerTimers[userId] = setTimeout(() => {
                     if (salas[roomId]) {
                         const index = salas[roomId].findIndex(u => u.userId === userId);
