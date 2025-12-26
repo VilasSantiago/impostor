@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams }
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
+import Modal from './Modal.jsx';
 import Game from './Game';
 
 /*
@@ -47,6 +48,11 @@ function Home() {
   const [salaId, setSalaId] = useState("");
   const navigate = useNavigate();
 
+  const [errorModal, setErrorModal] = useState({
+    isOpen: false,
+    msg: ""
+  });
+
   const [serverStatus, setServerStatus] = useState(socket.connected ? "ready" : "waking");
   useEffect(() => {
     const onConnect = () => setServerStatus("ready");
@@ -70,7 +76,10 @@ function Home() {
     Crea un ID de sala aleatorio y navega a ella.
   */
   const crearSala = () => {
-    if(!nombre.trim()) return alert("Por favor ingresa tu nombre.");
+    if(!nombre.trim()){
+      setErrorModal({isOpen: true, msg: "Por favor ingresa tu nombre para continuar."});
+      return;
+    } 
     const id = Math.random().toString(36).substring(7).toUpperCase();
     navigate(`/sala/${id}?nombre=${nombre}`);
   };
@@ -79,8 +88,15 @@ function Home() {
     Navega a la sala especificada.
   */
   const unirseSala = () => {
-    if(!nombre.trim() || !salaId.trim()) return alert("Faltan datos.");
+    if(!nombre.trim() || !salaId.trim()){
+      setErrorModal({isOpen: true, msg: "Falta el Nombre o el Código de la sala."});
+      return;
+    }
     navigate(`/sala/${salaId}?nombre=${nombre}`);
+  };
+
+  const cerrarModal = () => {
+    setErrorModal({ ...errorModal, isOpen: false});
   };
 
   return (
@@ -158,7 +174,14 @@ function Home() {
           </button>
         </div>
       </div>
-      
+      <Modal
+        isOpen={errorModal.isOpen}
+        title="DATOS INCOMPLETOS"
+        message={errorModal.msg}
+        isAlert={true}
+        onConfirm={cerrarModal}
+        onClose={cerrarModal}
+      />
     </div>
   );
 }
@@ -174,6 +197,7 @@ const CATEGORIAS = [
   gameData: Si es null, es el lobby. Si tiene datos es la pantalla de juego.
 */
 function Lobby() {
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
@@ -279,12 +303,13 @@ function Lobby() {
     alert("Código copiado");
   };
 
+  const handleBotonSalir = () => {
+    setShowModal(true);;
+  }
   const salirDeSala = () => {
-    const confirmar = window.confirm("¿Estás seguro que quieres salir de la sala?");
-    if (confirmar) {
-      socket.emit("salir_sala");
-      navigate("/");
-    }
+    socket.emit("salir_sala");
+    setShowModal(false);
+    navigate("/");
   };
   
   const revelarJuego = () => {
@@ -306,8 +331,8 @@ function Lobby() {
       
       {/* BOTÓN SALIR */}
       <button 
-        onClick={salirDeSala}
-        className="absolute z-50 flex items-center gap-2 p-2 transition-all top-20 left-2 md:top-16 md:left-24 text-slate-500 hover:text-red-500 group"
+        onClick={handleBotonSalir}
+        className="absolute z-40 flex items-center gap-2 p-2 transition-all top-20 left-2 md:top-16 md:left-24 text-slate-500 hover:text-red-500 group"
       >
         <div className="p-2 transition-colors border rounded-full bg-slate-900 border-slate-700 group-hover:bg-red-900/20 group-hover:border-red-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
@@ -459,6 +484,13 @@ function Lobby() {
             </div>
         </div>
       </div>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={salirDeSala}
+        title="¿ABANDONAR MISIÓN?"
+        message="Si sales ahora, perderás tu lugar en la nave. ¿Estás seguro?"
+      />
     </div>
   );
 }
